@@ -1,57 +1,24 @@
-# Phundament 4 - Local Development Stack
-# ======================================
-
-# Application services
-# --------------------
-
-# container to run one-off commands - a dockerized shell
-appcli:
-  # should be replaced with image, eg. <project_name>_appsrc
-  build: .
-  # host-volume for local development
-  volumes:
-    - '.:/app'
+nginx:
+  build: nginx-fpm
   links:
-    - 'appnginx:WEB'
-    - 'mariadb:DB'
-  command: 'sh src/run.sh'
-
-# The php-fpm server for interpreting php code
-appfpm:
-  image: phundament/php:5.6-fpm-4.0.0-rc3-dev
-  # host-volume for local development
-  volumes:
-    - '.:/app'
-  links:
-    - 'mariadb:DB'
-
-# The nginx server for serving static files directly
-appnginx:
-  image: schmunk42/nginx:1.7
-  links:
-    - 'appfpm:PHPFPM'
-  # host-volume for local development
-  volumes:
-    - '.:/app'
-    #- 'build/nginx/run.sh:/root/run.sh'
+    - phpfpm
   ports:
-    - '80'
-  environment:
-    VIRTUAL_HOST: '~^dev\.myapp\.'
-
-# Build-container with CLI and source-code
-appsrc:
-  build: .
-  command: 'tail -f /dev/null'
-  # host-volume for local development
+    - "8080:80"
+  volumes_from:
+    - htdocs
+phpfpm:
+  build: php-5.6-fpm-custom
+  volumes_from:
+    - htdocs
+    - db
+db:
+  image: mariadb
   volumes:
-    - '.:/app'
-
-# Data Services
-# -------------
-mariadb:
-  image: tutum/mariadb:10.0
-  ports:
-    - '3306'
+    - /var/run/mysqld
   environment:
-    MARIADB_PASS: secretadmin
+    MYSQL_ROOT_PASSWORD: change_this
+htdocs:
+  image: busybox
+  stdin_open: true
+  volumes:
+    - htdocs:/var/www/html
